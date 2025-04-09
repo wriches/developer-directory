@@ -1,0 +1,78 @@
+name: Warn and Remove Stale Developer Profiles
+
+on:
+  schedule:
+    - cron: '0 4 * * *'  # Runs daily at 4am UTC
+  workflow_dispatch:
+
+jobs:
+  stale-check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Git config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Find stale profiles (older than 53 days)
+        id: find_stale
+        run: |
+          mkdir -p stale_deletions
+          cutoff_date=$(date -d "53 days ago" +%s)
+
+          for file in developers/*.md; do
+            [[ -e "$file" ]] || continue
+            mod_date=$(git log -1 --format="%ct" "$file" || echo 0)
+            if [ "$mod_date" -lt "$cutoff_date" ]; then
+              cp "$file" stale_deletions/
+              echo "Stale: $file"
+            fi
+          done
+          
+          echo "stale_files=$(ls stale_deletions/*.md 2>/dev/null | tr '\n' ' ')" >> $GITHUB_OUTPUT
+
+      - name: Create PR and add labels
+        if: steps.find_stale.outputs.stale_files != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="remove-stale-profiles-$(date +%s)"
+          git checkout -b "$branch"
+
+          for file in stale_deletions/*.md; do
+            base=$(basename "$file")
+            git rm "developers/$base"
+          done
+
+          git commit -m "⚠️ Prepare to remove stale developer profiles (83+ days old)"
+          git push origin "$branch"
+
+          pr_url=$(gh pr create \
+            --title "⚠️ Stale Developer Profile Removal" \
+            --body "This PR proposes deletion of developer profile(s) that haven't been updated in over 53 days. Please update your file to keep your listing live. Profiles will be deleted after 7 additional days if not updated." \
+            --base main \
+            --head "$branch" \
+            --json url -q ".url")
+
+          echo "Adding labels to PR: $pr_url"
+          pr_number=$(gh pr view "$pr_url" --json number -q ".number")
+
+          gh pr edit "$pr_number" --add-label "stale-profile,auto-delete"
+
+
+      - name: Comment on PR
+        if: steps.find_stale.outputs.stale_files != ''
+        run: |
+          pr_url=$(gh pr list --state open --head "$branch" --json url -q '.[0].url')
+          for file in stale_deletions/*.md; do
+            name=$(basename "$file" .md)
+            gh pr comment "$pr_url" --body "👋 Heads up **$name**, your profile has not been updated in over 53 days. If this is a mistake, simply update your file to keep it active. Otherwise, it will be removed in 7 additional days."
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
