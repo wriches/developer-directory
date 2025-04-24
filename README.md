@@ -16,31 +16,6 @@ All profiles are stored in the `developers/` directory. Each file represents a d
 ## 📝 How to Submit Your Profile
 
 1. Fork the repo.
-2. Create a new file in the `developers/` folder named `your-name.md` (e.g. `alice-blockchain.md`). You can copy [`template.md`](template.md) to get started.
-3. Fill out the template (see below).
+2. Create a new file in the `developers/` folder named `your-name.md` (e.g. `john-smith.md`). You should copy the contents of [`template.md`](template.md) to get started. Incorrectly formatted entries may not be accepted.
+3. Fill out the template and remove the comments in `<!-- -->` tags.
 4. Open a Pull Request with the title: `Add [your name] to developer directory`.
-
-### Developer Template
-
-```markdown
-## Name
-Alice Blockchain
-
-## GitHub Handle
-[@alice-blockchain](https://github.com/alice-blockchain)
-
-## Location
-Berlin, Germany
-
-## Programming Experience
-Full-stack engineer with 5 years experience in TypeScript, Python, and Rust. Contributor to several open-source blockchain tools.
-
-## Sui Experience and Skills
-- Built NFT marketplaces on Sui
-- Comfortable with Move language and Sui development tools
-- Experience writing and deploying custom PTBs
-- Developed gas-efficient DeFi primitives
-
-## Opportunity Type
-Open to full-time roles or long-term contracting.
-```
